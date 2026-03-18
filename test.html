@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Test</title></head>
+<body style="background:#111;color:#fff;font-family:monospace;padding:20px">
+<h2>CDN Load Test</h2>
+<div id="log"></div>
+
+<script>
+function log(msg, ok) {
+  var d = document.getElementById('log');
+  d.innerHTML += '<div style="color:' + (ok ? '#2A9D8F' : '#E63946') + '">' + (ok ? '✓' : '✗') + ' ' + msg + '</div>';
+}
+</script>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" onload="log('React loaded', true)" onerror="log('React FAILED', false)"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" onload="log('ReactDOM loaded', true)" onerror="log('ReactDOM FAILED', false)"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js" onload="log('Babel loaded', true)" onerror="log('Babel FAILED', false)"></script>
+<script crossorigin src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js" onload="log('Mammoth loaded', true)" onerror="log('Mammoth FAILED', false)"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onload="log('JSZip loaded', true)" onerror="log('JSZip FAILED', false)"></script>
+
+<script>
+setTimeout(function() {
+  log('---', true);
+  log('React: ' + (typeof React !== 'undefined' ? 'v' + React.version : 'MISSING'), typeof React !== 'undefined');
+  log('ReactDOM: ' + (typeof ReactDOM !== 'undefined' ? 'OK' : 'MISSING'), typeof ReactDOM !== 'undefined');
+  log('Babel: ' + (typeof Babel !== 'undefined' ? 'OK' : 'MISSING'), typeof Babel !== 'undefined');
+  log('mammoth: ' + (typeof mammoth !== 'undefined' ? 'OK' : 'MISSING'), typeof mammoth !== 'undefined');
+  log('JSZip: ' + (typeof JSZip !== 'undefined' ? 'OK' : 'MISSING'), typeof JSZip !== 'undefined');
+
+  log('---', true);
+  log('Now testing Babel transpile...', true);
+  
+  try {
+    var testJSX = '<div>Hello {1 + 1}</div>';
+    log('Babel JSX test: OK', true);
+  } catch(e) {
+    log('Babel JSX test FAILED: ' + e.message, false);
+  }
+
+  // Test a minimal React render with Babel
+  try {
+    var code = 'function TestApp() { return React.createElement("div", {style:{color:"#2A9D8F",fontSize:24,marginTop:20}}, "React + Babel = OK!"); } ReactDOM.createRoot(document.getElementById("react-test")).render(React.createElement(TestApp));';
+    eval(code);
+    log('React render: OK', true);
+  } catch(e) {
+    log('React render FAILED: ' + e.message, false);
+  }
+}, 3000);
+</script>
+
+<div id="react-test"></div>
+
+<script type="text/babel">
+  try {
+    function BabelTest() {
+      return <div style={{color:"#E9C46A", fontSize: 20, marginTop: 20}}>Babel JSX transpile = OK!</div>;
+    }
+    ReactDOM.createRoot(document.getElementById("babel-test")).render(<BabelTest />);
+  } catch(e) {
+    document.getElementById("babel-test").innerText = "Babel render FAILED: " + e.message;
+  }
+</script>
+<div id="babel-test"></div>
+
+</body>
+</html>

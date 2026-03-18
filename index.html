@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catalisador Literário · Grupo Pasdiora</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0A0A0F; color: #fff; font-family: 'Source Serif 4', serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    input:focus, button:focus { outline: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script crossorigin src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
+
+  <script>
+    // Pre-define prompt data as plain JS to avoid Babel issues with long strings
+    window.APP_PROMPTS = {
+      system: "Voc\u00ea \u00e9 um editor liter\u00e1rio s\u00eanior brasileiro com 30 anos de experi\u00eancia em n\u00e3o-fic\u00e7\u00e3o, autoajuda e biografias. Voc\u00ea \u00e9 exigente, preciso e construtivo. Responda SEMPRE em JSON v\u00e1lido, sem markdown, sem backticks. Apenas o JSON puro.",
+      rewrite: "Voc\u00ea \u00e9 um editor liter\u00e1rio s\u00eanior brasileiro. REESCREVA o cap\u00edtulo aplicando TODAS as melhorias:\n1. ELIMINE redund\u00e2ncias\n2. MELHORE arco narrativo (abertura, ganchos, transi\u00e7\u00f5es, ritmo)\n3. CORRIJA ortografia, gram\u00e1tica, pontua\u00e7\u00e3o\n4. ENRIQUE\u00c7A a escrita (vocabul\u00e1rio, figuras de linguagem, show don't tell, sensorialidade)\n5. MAXIMIZE o fator catalisador (voz autoral, conex\u00e3o emocional, page-turner)\n\nREGRAS: Mantenha ess\u00eancia/mensagem/estilo do autor. N\u00c3O invente fatos. N\u00c3O mude estrutura. Preserve tom, eleve qualidade. Tamanho similar (at\u00e9 20% maior).\n\nResponda em JSON:\n{\"titulo_capitulo\": \"t\u00edtulo\", \"texto_reescrito\": \"texto completo reescrito\", \"mudancas_principais\": [\"3-5 mudan\u00e7as\"], \"score_antes_estimado\": 0, \"score_depois_estimado\": 0}\n\nCAP\u00cdTULO ORIGINAL:\n",
+      modules: {
+        redundancias: {
+          name: "Radar de Redund\u00e2ncias", icon: "\uD83D\uDD0D", color: "#E63946",
+          prompt: "Analise o texto abaixo e identifique TODAS as redund\u00e2ncias:\n1. Repeti\u00e7\u00f5es lexicais\n2. Redund\u00e2ncias sem\u00e2nticas\n3. Ideias circulares\n4. Chav\u00f5es e clich\u00eas\n\nResponda em JSON:\n{\"score\": \"0-100\", \"resumo\": \"an\u00e1lise em 2 frases\", \"problemas\": [{\"tipo\": \"lexical|semantica|circular|cliche\", \"gravidade\": \"alta|media|baixa\", \"trecho\": \"trecho problem\u00e1tico\", \"explicacao\": \"por que \u00e9 redundante\", \"sugestao\": \"como resolver\"}], \"estatisticas\": {\"palavras_mais_repetidas\": [{\"palavra\": \"x\", \"contagem\": 0}], \"densidade_redundancia\": \"X%\"}}\n\nTEXTO:\n"
+        },
+        arco_narrativo: {
+          name: "Arquiteto de Arco", icon: "\uD83D\uDCD0", color: "#457B9D",
+          prompt: "Analise a estrutura narrativa (n\u00e3o-fic\u00e7\u00e3o/autoajuda/biografia):\n1. Estrutura: come\u00e7o-meio-fim claros?\n2. Ritmo: Onde cai?\n3. Ganchos de engajamento?\n4. Transi\u00e7\u00f5es suaves?\n5. Tens\u00e3o narrativa?\n\nResponda em JSON:\n{\"score\": \"0-100\", \"resumo\": \"an\u00e1lise em 2 frases\", \"estrutura\": {\"abertura\": {\"qualidade\": \"forte|media|fraca\", \"comentario\": \"...\"}, \"desenvolvimento\": {\"qualidade\": \"forte|media|fraca\", \"comentario\": \"...\"}, \"fechamento\": {\"qualidade\": \"forte|media|fraca\", \"comentario\": \"...\"}}, \"pontos_fracos\": [{\"localizacao\": \"in\u00edcio|meio|fim\", \"problema\": \"descri\u00e7\u00e3o\", \"impacto\": \"alto|medio|baixo\", \"sugestao\": \"como melhorar\"}], \"ritmo_visual\": \"descri\u00e7\u00e3o do ritmo\"}\n\nTEXTO:\n"
+        },
+        ortografia: {
+          name: "Corretor Avan\u00e7ado", icon: "\u270F\uFE0F", color: "#2A9D8F",
+          prompt: "Analise como revisor profissional de portugu\u00eas brasileiro:\n1. Ortografia\n2. Gram\u00e1tica: concord\u00e2ncia, reg\u00eancia, crase\n3. Estilo: gerundismo, voz passiva, frases longas\n4. Pontua\u00e7\u00e3o\n\nResponda em JSON:\n{\"score\": \"0-100\", \"resumo\": \"an\u00e1lise em 2 frases\", \"erros\": [{\"tipo\": \"ortografia|gramatica|estilo|pontuacao\", \"gravidade\": \"alta|media|baixa\", \"trecho_original\": \"texto com erro\", \"correcao\": \"texto corrigido\", \"regra\": \"regra gramatical\"}], \"estatisticas\": {\"total_erros\": 0, \"frases_muito_longas\": 0, \"voz_passiva_percentual\": \"X%\"}}\n\nTEXTO:\n"
+        },
+        enriquecimento: {
+          name: "Enriquecedor de Escrita", icon: "\uD83D\uDC8E", color: "#E9C46A",
+          prompt: "Sugira enriquecimentos para elevar a qualidade liter\u00e1ria:\n1. Vocabul\u00e1rio preciso\n2. Figuras de linguagem\n3. Ritmo frasal\n4. Show don't tell\n5. Sensorialidade\n\nResponda em JSON:\n{\"score\": \"0-100\", \"resumo\": \"an\u00e1lise em 2 frases\", \"sugestoes\": [{\"tipo\": \"vocabulario|figura_linguagem|ritmo|show_dont_tell|sensorial\", \"impacto\": \"alto|medio|baixo\", \"trecho_original\": \"texto original\", \"sugestao_reescrita\": \"vers\u00e3o enriquecida\", \"explicacao\": \"por que \u00e9 melhor\"}], \"nivel_atual\": \"iniciante|intermediario|avancado|profissional\", \"potencial\": \"descri\u00e7\u00e3o do potencial\"}\n\nTEXTO:\n"
+        },
+        catalisador: {
+          name: "Fator Catalisador", icon: "\u26A1", color: "#F4A261",
+          prompt: "Avalie o PODER DE CATIVA\u00c7\u00c3O deste texto:\n1. Abertura magn\u00e9tica\n2. Voz autoral\n3. Conex\u00e3o emocional\n4. Page-turner factor\n5. Unicidade\n6. Transforma\u00e7\u00e3o\n\nResponda em JSON:\n{\"score\": \"0-100\", \"resumo\": \"an\u00e1lise em 2 frases\", \"veredito\": \"public\u00e1vel como est\u00e1 | precisa de ajustes | precisa de reescrita significativa\", \"dimensoes\": {\"abertura_magnetica\": {\"score\": \"0-100\", \"comentario\": \"...\"}, \"voz_autoral\": {\"score\": \"0-100\", \"comentario\": \"...\"}, \"conexao_emocional\": {\"score\": \"0-100\", \"comentario\": \"...\"}, \"page_turner\": {\"score\": \"0-100\", \"comentario\": \"...\"}, \"unicidade\": {\"score\": \"0-100\", \"comentario\": \"...\"}, \"transformacao\": {\"score\": \"0-100\", \"comentario\": \"...\"}}, \"o_que_falta\": \"coisa mais importante que falta\", \"ponto_forte\": \"maior trunfo\", \"recomendacao_final\": \"conselho em 3 frases\"}\n\nTEXTO:\n"
+        }
+      }
+    };
+
+    // Simple .docx generator (no external dependency)
+    window.generateDocx = function(chapters, fileName) {
+      // Build a simple .docx using XML templates
+      var contentParts = [];
+      chapters.forEach(function(ch) {
+        contentParts.push('<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>' + escapeXml(ch.title) + '</w:t></w:r></w:p>');
+        var paras = ch.rewritten.split('\n');
+        paras.forEach(function(p) {
+          if (p.trim()) {
+            contentParts.push('<w:p><w:pPr><w:spacing w:after="200" w:line="360"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia"/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.trim()) + '</w:t></w:r></w:p>');
+          }
+        });
+        contentParts.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+      });
+
+      var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"' +
+        ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        '<w:body>' + contentParts.join('') + '</w:body></w:document>';
+
+      var contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        '</Types>';
+
+      var relsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        '</Relationships>';
+
+      var wordRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '</Relationships>';
+
+      // Use JSZip if available, otherwise create a simple download
+      if (window.JSZip) {
+        var zip = new JSZip();
+        zip.file('[Content_Types].xml', contentTypesXml);
+        zip.file('_rels/.rels', relsXml);
+        zip.file('word/document.xml', documentXml);
+        zip.file('word/_rels/document.xml.rels', wordRelsXml);
+        zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}).then(function(blob) {
+          downloadBlob(blob, fileName);
+        });
+      } else {
+        // Fallback: download as .txt
+        var textContent = chapters.map(function(ch) { return '=== ' + ch.title + ' ===\n\n' + ch.rewritten; }).join('\n\n\n');
+        var blob = new Blob([textContent], {type: 'text/plain;charset=utf-8'});
+        downloadBlob(blob, fileName.replace('.docx', '.txt'));
+      }
+    };
+
+    function escapeXml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+    }
+
+    function downloadBlob(blob, name) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+  </script>
+
+  <!-- JSZip for docx generation -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useCallback, useRef, useEffect } = React;
+    const PROMPTS = window.APP_PROMPTS;
+
+    async function callLLM(apiKey, sysPrompt, userPrompt) {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+        body: JSON.stringify({
+          model: "gpt-4o", max_tokens: 4096, temperature: 0.3,
+          response_format: { type: "json_object" },
+          messages: [{ role: "system", content: sysPrompt }, { role: "user", content: userPrompt }]
+        })
+      });
+      if (!r.ok) {
+        const e = await r.text();
+        var m = "OpenAI Error " + r.status;
+        try { m = JSON.parse(e).error.message || m; } catch(x) {}
+        throw new Error(m);
+      }
+      const d = await r.json();
+      return JSON.parse((d.choices[0].message.content || "").replace(/```json|```/g, "").trim());
+    }
+
+    // ─── CHUNK REWRITE ENGINE ───────────────────────────────────────
+    var CHUNK_LIMIT = 6000; // chars per chunk
+
+    var CHUNK_CONTINUE_PROMPT = "Voc\u00ea \u00e9 um editor liter\u00e1rio s\u00eanior brasileiro. REESCREVA o TRECHO abaixo aplicando TODAS as melhorias:\n1. ELIMINE redund\u00e2ncias\n2. MELHORE arco narrativo\n3. CORRIJA ortografia, gram\u00e1tica, pontua\u00e7\u00e3o\n4. ENRIQUE\u00c7A a escrita\n5. MAXIMIZE o fator catalisador\n\nREGRAS: Mantenha ess\u00eancia/estilo do autor. N\u00c3O invente fatos. Preserve tom.\nIMPORTANTE: Este \u00e9 o TRECHO {CHUNK_NUM} de {CHUNK_TOTAL} do cap\u00edtulo. Mantenha continuidade com o que veio antes.\n\nResponda em JSON:\n{\"texto_reescrito\": \"trecho completo reescrito\", \"mudancas_principais\": [\"2-3 mudan\u00e7as\"], \"score_antes_estimado\": 0, \"score_depois_estimado\": 0}\n\n";
+
+    function splitIntoChunks(text, limit) {
+      if (text.length <= limit) return [text];
+      var paragraphs = text.split(/\n\s*\n/);
+      var chunks = [];
+      var current = "";
+      for (var i = 0; i < paragraphs.length; i++) {
+        var para = paragraphs[i];
+        if (current.length + para.length + 2 > limit && current.length > 0) {
+          chunks.push(current.trim());
+          current = para;
+        } else {
+          current += (current ? "\n\n" : "") + para;
+        }
+      }
+      if (current.trim()) chunks.push(current.trim());
+      // If any chunk is still too large (single giant paragraph), force-split by sentences
+      var finalChunks = [];
+      for (var j = 0; j < chunks.length; j++) {
+        if (chunks[j].length <= limit * 1.3) {
+          finalChunks.push(chunks[j]);
+        } else {
+          var sentences = chunks[j].split(/(?<=[.!?])\s+/);
+          var sub = "";
+          for (var s = 0; s < sentences.length; s++) {
+            if (sub.length + sentences[s].length + 1 > limit && sub.length > 0) {
+              finalChunks.push(sub.trim());
+              sub = sentences[s];
+            } else {
+              sub += (sub ? " " : "") + sentences[s];
+            }
+          }
+          if (sub.trim()) finalChunks.push(sub.trim());
+        }
+      }
+      return finalChunks;
+    }
+
+    async function rewriteChapter(apiKey, chapterContent, onProgress) {
+      var chunks = splitIntoChunks(chapterContent, CHUNK_LIMIT);
+
+      if (chunks.length === 1) {
+        // Single chunk — use standard rewrite
+        if (onProgress) onProgress("Reescrevendo...");
+        var res = await callLLM(apiKey, PROMPTS.system, PROMPTS.rewrite + chunks[0]);
+        return res;
+      }
+
+      // Multi-chunk rewrite
+      var rewrittenParts = [];
+      var allChanges = [];
+      var scoreBefore = 0;
+      var scoreAfter = 0;
+      var titulo = "";
+
+      for (var i = 0; i < chunks.length; i++) {
+        if (onProgress) onProgress("Reescrevendo parte " + (i + 1) + " de " + chunks.length + "...");
+
+        var prompt;
+        if (i === 0) {
+          // First chunk: use full rewrite prompt
+          prompt = PROMPTS.rewrite + chunks[i];
+        } else {
+          // Continuation: include last 200 chars of previous rewrite for context
+          var prevContext = rewrittenParts[rewrittenParts.length - 1].slice(-300);
+          prompt = CHUNK_CONTINUE_PROMPT
+            .replace("{CHUNK_NUM}", String(i + 1))
+            .replace("{CHUNK_TOTAL}", String(chunks.length));
+          prompt += "CONTEXTO DO TRECHO ANTERIOR (para continuidade):\n\"..." + prevContext + "\"\n\nTRECHO A REESCREVER:\n" + chunks[i];
+        }
+
+        var res = await callLLM(apiKey, PROMPTS.system, prompt);
+
+        rewrittenParts.push(res.texto_reescrito || chunks[i]);
+        if (res.mudancas_principais) {
+          for (var m = 0; m < res.mudancas_principais.length; m++) {
+            allChanges.push(res.mudancas_principais[m]);
+          }
+        }
+        scoreBefore += Number(res.score_antes_estimado) || 0;
+        scoreAfter += Number(res.score_depois_estimado) || 0;
+        if (i === 0 && res.titulo_capitulo) titulo = res.titulo_capitulo;
+      }
+
+      // Deduplicate similar changes, keep top 5
+      var uniqueChanges = [];
+      for (var c = 0; c < allChanges.length; c++) {
+        var isDupe = false;
+        for (var u = 0; u < uniqueChanges.length; u++) {
+          if (allChanges[c].toLowerCase().substring(0, 30) === uniqueChanges[u].toLowerCase().substring(0, 30)) {
+            isDupe = true; break;
+          }
+        }
+        if (!isDupe) uniqueChanges.push(allChanges[c]);
+        if (uniqueChanges.length >= 5) break;
+      }
+
+      return {
+        titulo_capitulo: titulo,
+        texto_reescrito: rewrittenParts.join("\n\n"),
+        mudancas_principais: uniqueChanges,
+        score_antes_estimado: Math.round(scoreBefore / chunks.length),
+        score_depois_estimado: Math.round(scoreAfter / chunks.length),
+        _chunks: chunks.length
+      };
+    }
+
+    function detectChapters(text) {
+      var lines = text.split("\n");
+      var patterns = [/^cap[íi]tulo\s+\d+/i, /^cap[íi]tulo\s+[IVXLCDM]+/i, /^parte\s+\d+/i, /^\d+\.\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/, /^\d+\s*[-–—]\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/];
+      var starts = [];
+      lines.forEach(function(line, idx) {
+        var t = line.trim();
+        if (t.length < 3 || t.length > 120) return;
+        for (var i = 0; i < patterns.length; i++) {
+          if (patterns[i].test(t)) { starts.push({ index: idx, title: t }); break; }
+        }
+      });
+      if (starts.length === 0) {
+        var words = text.split(/\s+/), cs = 3000, chs = [];
+        for (var i = 0; i < words.length; i += cs) {
+          var chunk = words.slice(i, i + cs).join(" ");
+          chs.push({ title: "Bloco " + (chs.length + 1), content: chunk, wordCount: Math.min(cs, words.length - i) });
+        }
+        return chs;
+      }
+      var chs = [];
+      for (var i = 0; i < starts.length; i++) {
+        var s = starts[i].index, e = i + 1 < starts.length ? starts[i + 1].index : lines.length;
+        var c = lines.slice(s, e).join("\n").trim();
+        chs.push({ title: starts[i].title, content: c, wordCount: c.split(/\s+/).filter(Boolean).length });
+      }
+      if (starts[0].index > 0) {
+        var intro = lines.slice(0, starts[0].index).join("\n").trim();
+        if (intro.split(/\s+/).filter(Boolean).length > 50) {
+          chs.unshift({ title: "Introdu\u00e7\u00e3o", content: intro, wordCount: intro.split(/\s+/).filter(Boolean).length });
+        }
+      }
+      return chs;
+    }
+
+    async function readDocxFile(file) {
+      var ab = await file.arrayBuffer();
+      return (await mammoth.extractRawText({ arrayBuffer: ab })).value;
+    }
+
+    function ScoreRing({ score: rawScore, color, size = 120, strokeWidth = 8 }) {
+      var score = Number(rawScore) || 0;
+      var r = (size - strokeWidth) / 2, c = 2 * Math.PI * r, off = c - (score / 100) * c;
+      var [a, setA] = useState(c);
+      useEffect(function() { var t = setTimeout(function() { setA(off); }, 100); return function() { clearTimeout(t); }; }, [off]);
+      var g = score >= 90 ? "A+" : score >= 80 ? "A" : score >= 70 ? "B" : score >= 60 ? "C" : score >= 50 ? "D" : "F";
+      return (
+        <div style={{ position: "relative", width: size, height: size }}>
+          <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeWidth} />
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={a} style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" }} />
+          </svg>
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: size*0.3, fontWeight: 900, color: color, lineHeight: 1 }}>{score}</span>
+            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: size*0.12, color: "rgba(255,255,255,0.5)", letterSpacing: 2, marginTop: 2 }}>{g}</span>
+          </div>
+        </div>
+      );
+    }
+
+    function Badge({ type, children }) {
+      var map = { alta: "#E63946", media: "#F4A261", baixa: "#2A9D8F", alto: "#E63946", medio: "#F4A261", baixo: "#2A9D8F", forte: "#2A9D8F", fraca: "#E63946" };
+      var fg = map[type] || "#F4A261";
+      return <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontFamily: "'JetBrains Mono',monospace", fontWeight: 500, background: fg + "22", color: fg, border: "1px solid " + fg + "44", textTransform: "uppercase", letterSpacing: 1 }}>{children}</span>;
+    }
+
+    function ProblemCard({ item, accentColor }) {
+      var [ex, setEx] = useState(false);
+      var tr = item.trecho || item.trecho_original || "";
+      var exp = item.explicacao || item.problema || "";
+      var sug = item.sugestao || item.sugestao_reescrita || item.correcao || "";
+      return (
+        <div onClick={function() { setEx(!ex); }} style={{ background: ex ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "16px 20px", cursor: "pointer", borderLeft: "3px solid " + accentColor }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <Badge type={item.gravidade || item.impacto}>{item.gravidade || item.impacto}</Badge>
+            {item.tipo && <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase" }}>{item.tipo}</span>}
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "rgba(255,255,255,0.3)" }}>{ex ? "\u25B2" : "\u25BC"}</span>
+          </div>
+          {tr && <div style={{ fontFamily: "'Source Serif 4',serif", fontSize: 14, color: "rgba(255,255,255,0.7)", fontStyle: "italic", lineHeight: 1.6, maxHeight: ex ? 500 : 40, overflow: "hidden", transition: "max-height 0.3s" }}>"{tr}"</div>}
+          {ex && <div style={{ animation: "fadeIn 0.3s ease" }}>
+            {exp && <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.04)", fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.6 }}><strong style={{ color: "rgba(255,255,255,0.8)" }}>Problema: </strong>{exp}</div>}
+            {sug && <div style={{ marginTop: 8, padding: "10px 14px", borderRadius: 8, background: accentColor + "11", fontSize: 13, color: accentColor, lineHeight: 1.6, border: "1px solid " + accentColor + "22" }}><strong>{"\u2726"} Sugest\u00e3o: </strong>{sug}</div>}
+            {item.regra && <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono',monospace" }}>Regra: {item.regra}</div>}
+          </div>}
+        </div>
+      );
+    }
+
+    function ModuleResult({ moduleKey, data }) {
+      var mod = PROMPTS.modules[moduleKey];
+      if (!data) return null;
+      var items = data.problemas || data.pontos_fracos || data.erros || data.sugestoes || [];
+      return (
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 28, marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 24, marginBottom: 24 }}>
+            <ScoreRing score={Number(data.score) || 0} color={mod.color} />
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 6px 0" }}>{mod.icon} {mod.name}</h3>
+              <p style={{ fontFamily: "'Source Serif 4',serif", fontSize: 15, color: "rgba(255,255,255,0.6)", lineHeight: 1.6, margin: 0 }}>{data.resumo}</p>
+              {data.veredito && <div style={{ marginTop: 10, display: "inline-block", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase", background: data.veredito.includes("como est") ? "rgba(42,157,143,0.15)" : data.veredito.includes("ajustes") ? "rgba(244,162,97,0.15)" : "rgba(230,57,70,0.15)", color: data.veredito.includes("como est") ? "#2A9D8F" : data.veredito.includes("ajustes") ? "#F4A261" : "#E63946" }}>{data.veredito}</div>}
+            </div>
+          </div>
+          {data.dimensoes && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 20 }}>
+            {Object.entries(data.dimensoes).map(function(entry) { var k = entry[0], v = entry[1]; return (
+              <div key={k} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "12px 16px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase" }}>{k.replace(/_/g, " ")}</span>
+                  <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 18, color: mod.color }}>{Number(v.score)}</span>
+                </div>
+                <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}><div style={{ height: "100%", background: mod.color, width: Number(v.score) + "%", transition: "width 1s" }} /></div>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "8px 0 0", lineHeight: 1.5 }}>{v.comentario}</p>
+              </div>
+            ); })}
+          </div>}
+          {data.o_que_falta && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div style={{ background: "rgba(230,57,70,0.06)", borderRadius: 10, padding: 16, border: "1px solid rgba(230,57,70,0.1)" }}>
+              <div style={{ fontSize: 11, color: "#E63946", fontFamily: "'JetBrains Mono',monospace", marginBottom: 6, textTransform: "uppercase" }}>O que falta</div>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", margin: 0, lineHeight: 1.6 }}>{data.o_que_falta}</p>
+            </div>
+            <div style={{ background: "rgba(42,157,143,0.06)", borderRadius: 10, padding: 16, border: "1px solid rgba(42,157,143,0.1)" }}>
+              <div style={{ fontSize: 11, color: "#2A9D8F", fontFamily: "'JetBrains Mono',monospace", marginBottom: 6, textTransform: "uppercase" }}>Ponto forte</div>
+              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", margin: 0, lineHeight: 1.6 }}>{data.ponto_forte}</p>
+            </div>
+          </div>}
+          {data.estrutura && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+            {Object.entries(data.estrutura).map(function(entry) { var k = entry[0], v = entry[1]; var qc = { forte: "#2A9D8F", media: "#F4A261", fraca: "#E63946" }; return (
+              <div key={k} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "12px 16px", borderTop: "3px solid " + (qc[v.qualidade] || mod.color) }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase", marginBottom: 4 }}>{k}</div>
+                <Badge type={v.qualidade}>{v.qualidade}</Badge>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: "8px 0 0", lineHeight: 1.5 }}>{v.comentario}</p>
+              </div>
+            ); })}
+          </div>}
+          {data.estatisticas && <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 24, flexWrap: "wrap" }}>
+            {Object.entries(data.estatisticas).map(function(entry) { var k = entry[0], v = entry[1]; return (
+              <div key={k}><span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase" }}>{k.replace(/_/g, " ")}: </span><span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontFamily: "'JetBrains Mono',monospace" }}>{typeof v === "object" ? JSON.stringify(v) : String(v)}</span></div>
+            ); })}
+          </div>}
+          {data.recomendacao_final && <div style={{ background: mod.color + "0D", borderRadius: 10, padding: 16, border: "1px solid " + mod.color + "22", marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: mod.color, fontFamily: "'JetBrains Mono',monospace", marginBottom: 6, textTransform: "uppercase" }}>Recomenda\u00e7\u00e3o final</div>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)", margin: 0, lineHeight: 1.7 }}>{data.recomendacao_final}</p>
+          </div>}
+          {items.length > 0 && <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase", marginBottom: 4 }}>{items.length} itens encontrados</div>
+            {items.map(function(it, i) { return <ProblemCard key={i} item={it} accentColor={mod.color} />; })}
+          </div>}
+          {(data.ritmo_visual || data.potencial || data.nivel_atual) && <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "12px 16px", marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.nivel_atual && <div><span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase" }}>N\u00edvel atual: </span><span style={{ fontSize: 13, color: mod.color, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{data.nivel_atual}</span></div>}
+            {data.potencial && <div><span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase" }}>Potencial: </span><span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontFamily: "'Source Serif 4',serif" }}>{data.potencial}</span></div>}
+            {data.ritmo_visual && <div><span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase" }}>Ritmo: </span><span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontFamily: "'Source Serif 4',serif" }}>{data.ritmo_visual}</span></div>}
+          </div>}
+        </div>
+      );
+    }
+
+    function ChapterCard({ chapter, index, apiKey, onRewritten, rewrittenData }) {
+      var [status, setStatus] = useState(rewrittenData ? "done" : "idle");
+      var [result, setResult] = useState(rewrittenData ? rewrittenData.result : null);
+      var [showOrig, setShowOrig] = useState(false);
+      var [errMsg, setErrMsg] = useState("");
+      var [progress, setProgress] = useState("");
+
+      useEffect(function() { if (rewrittenData && !result) { setResult(rewrittenData.result); setStatus("done"); } }, [rewrittenData]);
+
+      var chunkCount = splitIntoChunks(chapter.content, CHUNK_LIMIT).length;
+
+      var doRewrite = async function() {
+        if (!apiKey) return;
+        setStatus("running"); setErrMsg(""); setProgress("");
+        try {
+          var res = await rewriteChapter(apiKey, chapter.content, function(msg) { setProgress(msg); });
+          setResult(res); setStatus("done"); onRewritten(index, res.texto_reescrito, res);
+        } catch (err) { setErrMsg(err.message); setStatus("error"); }
+        setProgress("");
+      };
+
+      return (
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 24, marginBottom: 16, borderLeft: status === "done" ? "3px solid #2A9D8F" : status === "error" ? "3px solid #E63946" : "3px solid rgba(255,255,255,0.1)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: result ? 16 : 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: status === "done" ? "rgba(42,157,143,0.15)" : "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 16, color: status === "done" ? "#2A9D8F" : "rgba(255,255,255,0.4)", flexShrink: 0 }}>{index + 1}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h4 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chapter.title}</h4>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", fontFamily: "'JetBrains Mono',monospace" }}>{chapter.wordCount.toLocaleString("pt-BR")} palavras{chunkCount > 1 ? " \u00B7 " + chunkCount + " partes" : ""}</span>
+            </div>
+            {status === "idle" && <button onClick={doRewrite} style={{ background: "linear-gradient(135deg,#8B5CF6,#A78BFA)", border: "none", borderRadius: 8, padding: "10px 20px", color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "'JetBrains Mono',monospace", fontWeight: 500, whiteSpace: "nowrap" }}>{"\u2726"} Reescrever</button>}
+            {status === "running" && <div style={{ padding: "10px 20px", fontSize: 13, color: "#A78BFA", fontFamily: "'JetBrains Mono',monospace", animation: "pulse 1s infinite", whiteSpace: "nowrap" }}>{progress || "Reescrevendo..."}</div>}
+            {status === "done" && <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={doRewrite} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "8px 14px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 12, fontFamily: "'JetBrains Mono',monospace" }}>Refazer</button>
+              <div style={{ padding: "8px 14px", fontSize: 12, color: "#2A9D8F", fontFamily: "'JetBrains Mono',monospace", fontWeight: 500 }}>{"\u2713"} OK</div>
+            </div>}
+            {status === "error" && <button onClick={doRewrite} style={{ background: "rgba(230,57,70,0.1)", border: "1px solid rgba(230,57,70,0.2)", borderRadius: 8, padding: "8px 14px", color: "#E63946", cursor: "pointer", fontSize: 12, fontFamily: "'JetBrains Mono',monospace" }}>Tentar novamente</button>}
+          </div>
+          {errMsg && <div style={{ background: "rgba(230,57,70,0.1)", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#E63946", fontFamily: "'JetBrains Mono',monospace" }}>{errMsg}</div>}
+          {result && result.texto_reescrito && <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, background: "rgba(230,57,70,0.06)" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono',monospace" }}>ANTES</span>
+                <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 20, color: "#E63946" }}>{result.score_antes_estimado}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", fontSize: 18, color: "rgba(255,255,255,0.3)" }}>{"\u2192"}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, background: "rgba(42,157,143,0.06)" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'JetBrains Mono',monospace" }}>DEPOIS</span>
+                <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 20, color: "#2A9D8F" }}>{result.score_depois_estimado}</span>
+              </div>
+            </div>
+            {result._chunks && result._chunks > 1 && <div style={{ display: "inline-block", padding: "4px 12px", borderRadius: 6, background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)", fontSize: 11, color: "#A78BFA", fontFamily: "'JetBrains Mono',monospace" }}>Processado em {result._chunks} partes</div>}
+            {result.mudancas_principais && <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "'JetBrains Mono',monospace", textTransform: "uppercase", marginBottom: 8 }}>Mudan\u00e7as principais</div>
+              {result.mudancas_principais.map(function(m, i) { return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}><span style={{ color: "#2A9D8F" }}>{"\u2726"}</span><span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}>{m}</span></div>; })}
+            </div>}
+            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+              <button onClick={function() { setShowOrig(false); }} style={{ background: !showOrig ? "rgba(139,92,246,0.15)" : "transparent", border: "1px solid " + (!showOrig ? "rgba(139,92,246,0.3)" : "rgba(255,255,255,0.06)"), borderRadius: 6, padding: "6px 14px", cursor: "pointer", color: !showOrig ? "#A78BFA" : "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "'JetBrains Mono',monospace" }}>Reescrito</button>
+              <button onClick={function() { setShowOrig(true); }} style={{ background: showOrig ? "rgba(255,255,255,0.05)" : "transparent", border: "1px solid " + (showOrig ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)"), borderRadius: 6, padding: "6px 14px", cursor: "pointer", color: showOrig ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)", fontSize: 12, fontFamily: "'JetBrains Mono',monospace" }}>Original</button>
+            </div>
+            <div style={{ background: "rgba(0,0,0,0.3)", borderRadius: 10, padding: 20, maxHeight: 400, overflowY: "auto", border: "1px solid " + (showOrig ? "rgba(255,255,255,0.06)" : "rgba(139,92,246,0.15)") }}>
+              <pre style={{ fontFamily: "'Source Serif 4',serif", fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, whiteSpace: "pre-wrap", wordWrap: "break-word", margin: 0 }}>{showOrig ? chapter.content : result.texto_reescrito}</pre>
+            </div>
+          </div>}
+        </div>
+      );
+    }
+
+    function App() {
+      var [apiKey, setApiKey] = useState("");
+      var [showKey, setShowKey] = useState(false);
+      var [text, setText] = useState("");
+      var [fileName, setFileName] = useState("");
+      var [wordCount, setWordCount] = useState(0);
+      var [chapters, setChapters] = useState([]);
+      var [results, setResults] = useState({});
+      var [running, setRunning] = useState(null);
+      var [error, setError] = useState("");
+      var [activeTab, setActiveTab] = useState(null);
+      var [allDone, setAllDone] = useState(false);
+      var [view, setView] = useState("analysis");
+      var [rw, setRw] = useState({});
+      var [rwAll, setRwAll] = useState(false);
+      var [rwProg, setRwProg] = useState("");
+      var fileRef = useRef(null);
+      var moduleKeys = Object.keys(PROMPTS.modules);
+
+      var handleFile = useCallback(async function(e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        setError(""); setResults({}); setAllDone(false); setActiveTab(null); setRw({}); setView("analysis");
+        try { setFileName(file.name); var c = await readDocxFile(file); setText(c); setWordCount(c.split(/\s+/).filter(Boolean).length); setChapters(detectChapters(c)); }
+        catch (err) { setError("Erro: " + err.message); }
+      }, []);
+
+      var runAll = useCallback(async function() {
+        if (!apiKey) { setError("Insira sua API key"); return; }
+        if (!text) { setError("Carregue um .docx"); return; }
+        setError(""); setResults({}); setAllDone(false);
+        for (var i = 0; i < moduleKeys.length; i++) {
+          var k = moduleKeys[i];
+          setRunning(k); setActiveTab(k);
+          try { var r = await callLLM(apiKey, PROMPTS.system, PROMPTS.modules[k].prompt + text.slice(0, 12000)); setResults(function(prev) { var n = Object.assign({}, prev); n[k] = r; return n; }); }
+          catch (err) { setResults(function(prev) { var n = Object.assign({}, prev); n[k] = { score: 0, resumo: "Erro: " + err.message }; return n; }); }
+        }
+        setRunning(null); setAllDone(true);
+      }, [apiKey, text, moduleKeys]);
+
+      var runSingle = useCallback(async function(k) {
+        if (!apiKey || !text) { setError("Insira key e carregue .docx"); return; }
+        setError(""); setRunning(k); setActiveTab(k);
+        try { var r = await callLLM(apiKey, PROMPTS.system, PROMPTS.modules[k].prompt + text.slice(0, 12000)); setResults(function(prev) { var n = Object.assign({}, prev); n[k] = r; return n; }); }
+        catch (err) { setResults(function(prev) { var n = Object.assign({}, prev); n[k] = { score: 0, resumo: "Erro: " + err.message }; return n; }); }
+        setRunning(null);
+      }, [apiKey, text]);
+
+      var onRw = useCallback(function(i, txt, res) { setRw(function(prev) { var n = Object.assign({}, prev); n[i] = { text: txt, result: res }; return n; }); }, []);
+
+      var rwAllCh = useCallback(async function() {
+        if (!apiKey || !chapters.length) return; setRwAll(true);
+        for (var i = 0; i < chapters.length; i++) {
+          var capNum = i + 1;
+          var total = chapters.length;
+          try {
+            var res = await rewriteChapter(apiKey, chapters[i].content, function(msg) {
+              setRwProg("Cap\u00edtulo " + capNum + "/" + total + ": " + msg);
+            });
+            setRw(function(prev) { var n = Object.assign({}, prev); n[i] = { text: res.texto_reescrito, result: res }; return n; });
+          }
+          catch (err) { setRw(function(prev) { var n = Object.assign({}, prev); n[i] = { text: chapters[i].content, result: { error: err.message } }; return n; }); }
+        }
+        setRwAll(false); setRwProg("");
+      }, [apiKey, chapters]);
+
+      var handleExport = function() {
+        var data = chapters.map(function(ch, i) { return { title: ch.title, rewritten: rw[i] ? rw[i].text : ch.content }; });
+        window.generateDocx(data, fileName.replace(/\.docx$/i, "") + " \u2014 CATALISADO.docx");
+      };
+
+      var rc = Object.keys(rw).length;
+      var scored = moduleKeys.filter(function(k) { return results[k] && Number(results[k].score); });
+      var os = scored.length > 0
+        ? Math.round(scored.reduce(function(s, k) { return s + Number(results[k].score); }, 0) / scored.length) : null;
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#0A0A0F", color: "#fff", fontFamily: "'Source Serif 4',serif" }}>
+          <div style={{ position: "fixed", inset: 0, opacity: 0.03, pointerEvents: "none", backgroundImage: "radial-gradient(circle at 25% 25%,#E63946 0%,transparent 50%),radial-gradient(circle at 75% 75%,#457B9D 0%,transparent 50%)" }} />
+          <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px", position: "relative" }}>
+
+            <header style={{ textAlign: "center", marginBottom: 48 }}>
+              <div style={{ fontSize: 12, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 6, textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: 16 }}>GRUPO PASDIORA {"\u00B7"} EDITORIAL AI</div>
+              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 48, fontWeight: 900, margin: 0, lineHeight: 1.1, background: "linear-gradient(135deg,#E63946,#F4A261,#E9C46A)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Catalisador Liter\u00e1rio</h1>
+              <p style={{ fontSize: 16, color: "rgba(255,255,255,0.4)", marginTop: 12, fontStyle: "italic" }}>Transforme manuscritos em obras que o leitor n\u00e3o consegue largar</p>
+            </header>
+
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
+              <label style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 2, textTransform: "uppercase", color: "rgba(255,255,255,0.35)", display: "block", marginBottom: 8 }}>{"\uD83D\uDD11"} OPENAI API KEY</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input type={showKey ? "text" : "password"} value={apiKey} onChange={function(e) { setApiKey(e.target.value); }} placeholder="sk-proj-..." style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, fontFamily: "'JetBrains Mono',monospace" }} />
+                <button onClick={function() { setShowKey(!showKey); }} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "0 14px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13 }}>{showKey ? "Ocultar" : "Mostrar"}</button>
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 6, fontFamily: "'JetBrains Mono',monospace" }}>Sua key fica apenas no browser. Nada \u00e9 salvo.</div>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "2px dashed rgba(255,255,255,0.08)", borderRadius: 14, padding: 32, textAlign: "center", marginBottom: 20, cursor: "pointer" }}
+              onClick={function() { fileRef.current && fileRef.current.click(); }}
+              onDragOver={function(e) { e.preventDefault(); e.currentTarget.style.borderColor = "#F4A261"; }}
+              onDragLeave={function(e) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+              onDrop={function(e) { e.preventDefault(); e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; if (e.dataTransfer.files[0]) { var dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]); fileRef.current.files = dt.files; handleFile({ target: { files: e.dataTransfer.files } }); } }}>
+              <input ref={fileRef} type="file" accept=".docx" onChange={handleFile} style={{ display: "none" }} />
+              {fileName ? <div style={{ animation: "fadeIn 0.3s" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>{"\uD83D\uDCD6"}</div>
+                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "#F4A261", marginBottom: 4 }}>{fileName}</div>
+                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{wordCount.toLocaleString("pt-BR")} palavras {"\u00B7"} {chapters.length} cap\u00edtulos</div>
+              </div> : <div>
+                <div style={{ fontSize: 40, marginBottom: 8, opacity: 0.5 }}>{"\uD83D\uDCC4"}</div>
+                <div style={{ fontSize: 15, color: "rgba(255,255,255,0.4)" }}>Arraste seu <strong style={{ color: "rgba(255,255,255,0.6)" }}>.docx</strong> aqui ou clique</div>
+              </div>}
+            </div>
+
+            {error && <div style={{ background: "rgba(230,57,70,0.1)", border: "1px solid rgba(230,57,70,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#E63946", fontFamily: "'JetBrains Mono',monospace" }}>{error}</div>}
+
+            {text && <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 4 }}>
+              <button onClick={function() { setView("analysis"); }} style={{ flex: 1, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: view === "analysis" ? "linear-gradient(135deg,#E63946,#F4A261)" : "transparent", color: view === "analysis" ? "#fff" : "rgba(255,255,255,0.4)", fontSize: 14, fontFamily: "'Playfair Display',serif", fontWeight: 700 }}>{"\uD83D\uDD2C"} An\u00e1lise</button>
+              <button onClick={function() { setView("rewrite"); }} style={{ flex: 1, padding: 12, borderRadius: 8, border: "none", cursor: "pointer", background: view === "rewrite" ? "linear-gradient(135deg,#8B5CF6,#A78BFA)" : "transparent", color: view === "rewrite" ? "#fff" : "rgba(255,255,255,0.4)", fontSize: 14, fontFamily: "'Playfair Display',serif", fontWeight: 700 }}>{"\u2726"} Reescrita {rc > 0 && "(" + rc + "/" + chapters.length + ")"}</button>
+            </div>}
+
+            {view === "analysis" && <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 10, marginBottom: 12 }}>
+                {moduleKeys.map(function(k) { var mod = PROMPTS.modules[k], done = !!results[k], isR = running === k; return (
+                  <button key={k} onClick={function() { done ? setActiveTab(k) : runSingle(k); }} disabled={isR || (running && running !== k)} style={{ background: isR ? "linear-gradient(90deg," + mod.color + "22," + mod.color + "44," + mod.color + "22)" : done ? mod.color + "15" : "rgba(255,255,255,0.03)", backgroundSize: isR ? "200% 100%" : undefined, animation: isR ? "shimmer 1.5s infinite" : undefined, border: "1px solid " + (done ? mod.color + "44" : "rgba(255,255,255,0.06)"), borderRadius: 10, padding: "14px 12px", cursor: "pointer", color: done ? mod.color : "rgba(255,255,255,0.5)", textAlign: "center", opacity: (running && running !== k) ? 0.4 : 1 }}>
+                    <div style={{ fontSize: 22, marginBottom: 4 }}>{mod.icon}</div>
+                    <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace", lineHeight: 1.3 }}>{mod.name}</div>
+                    {done && Number(results[k].score) > 0 && <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 900, color: mod.color, marginTop: 4 }}>{Number(results[k].score)}</div>}
+                    {isR && <div style={{ fontSize: 10, marginTop: 4, animation: "pulse 1s infinite", color: mod.color }}>analisando...</div>}
+                  </button>
+                ); })}
+              </div>
+              <button onClick={runAll} disabled={!!running || !text} style={{ width: "100%", padding: 16, marginBottom: 32, borderRadius: 12, border: "none", cursor: running ? "wait" : "pointer", background: running ? "linear-gradient(90deg,#E6394622,#F4A26144,#E6394622)" : "linear-gradient(135deg,#E63946,#F4A261)", backgroundSize: running ? "200% 100%" : undefined, animation: running ? "shimmer 1.5s infinite" : undefined, color: "#fff", fontSize: 15, fontFamily: "'Playfair Display',serif", fontWeight: 700, opacity: (!text || !!running) ? 0.5 : 1 }}>
+                {running ? "\u23F3 Analisando: " + PROMPTS.modules[running].name + "..." : allDone ? "\u2726 Reanalisar" : "\u26A1 ANALISAR TUDO"}
+              </button>
+              {os !== null && <div style={{ textAlign: "center", marginBottom: 32, animation: "fadeIn 0.5s" }}>
+                <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 12 }}>SCORE EDITORIAL</div>
+                <ScoreRing score={os} color="#F4A261" size={160} strokeWidth={10} />
+              </div>}
+              {Object.keys(results).length > 0 && <div style={{ display: "flex", gap: 4, marginBottom: 24, flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
+                {moduleKeys.filter(function(k) { return results[k]; }).map(function(k) { var mod = PROMPTS.modules[k], act = activeTab === k; return (
+                  <button key={k} onClick={function() { setActiveTab(k); }} style={{ background: act ? mod.color + "15" : "transparent", border: "1px solid " + (act ? mod.color + "44" : "transparent"), borderRadius: 8, padding: "8px 16px", cursor: "pointer", color: act ? mod.color : "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "'JetBrains Mono',monospace" }}>{mod.icon} {mod.name}{Number(results[k].score) > 0 && <span style={{ marginLeft: 6, fontWeight: 700 }}>{Number(results[k].score)}</span>}</button>
+                ); })}
+              </div>}
+              {activeTab && results[activeTab] && <div style={{ animation: "fadeIn 0.3s" }}><ModuleResult moduleKey={activeTab} data={results[activeTab]} /></div>}
+            </div>}
+
+            {view === "rewrite" && <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 900, color: "#fff", margin: "0 0 4px 0" }}>{"\u2726"} Reescrita por Cap\u00edtulo</h2>
+                  <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", margin: 0 }}>{chapters.length} cap\u00edtulos {"\u00B7"} {rc} reescritos</p>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {!rwAll && chapters.length > 0 && <button onClick={rwAllCh} style={{ background: "linear-gradient(135deg,#8B5CF6,#A78BFA)", border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "'JetBrains Mono',monospace", fontWeight: 500 }}>{"\u26A1"} Reescrever todos</button>}
+                  {rc > 0 && <button onClick={handleExport} style={{ background: "linear-gradient(135deg,#2A9D8F,#34D399)", border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "'JetBrains Mono',monospace", fontWeight: 500 }}>{"\uD83D\uDCE5"} Baixar .docx</button>}
+                </div>
+              </div>
+              {rwAll && <div style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#A78BFA", fontFamily: "'JetBrains Mono',monospace", animation: "pulse 1.5s infinite" }}>{"\u23F3"} {rwProg}</div>}
+              {rc > 0 && <div style={{ marginBottom: 20 }}>
+                <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}><div style={{ height: "100%", background: rc === chapters.length ? "linear-gradient(90deg,#2A9D8F,#34D399)" : "linear-gradient(90deg,#8B5CF6,#A78BFA)", width: (rc / chapters.length * 100) + "%", transition: "width 0.5s" }} /></div>
+              </div>}
+              {chapters.map(function(ch, i) { return <ChapterCard key={i} chapter={ch} index={i} apiKey={apiKey} onRewritten={onRw} rewrittenData={rw[i]} />; })}
+            </div>}
+
+            <footer style={{ textAlign: "center", marginTop: 48, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+              <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono',monospace", letterSpacing: 2, color: "rgba(255,255,255,0.15)" }}>CATALISADOR LITER\u00c1RIO {"\u00B7"} GRUPO PASDIORA {"\u00B7"} {new Date().getFullYear()}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.1)", marginTop: 4, fontFamily: "'JetBrains Mono',monospace" }}>Powered by GPT-4o</div>
+            </footer>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
